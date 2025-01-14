@@ -15,65 +15,59 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useServerAction } from "zsa-react";
-import { produceNewMessage } from "./actions";
-import { useStore } from "./store";
-import { useEffect } from "react";
+import { slugGenerator } from "./actions";
+import { useSlugStore } from "./slug-store";
 
 const formSchema = z.object({
-  name: z
+  title: z
     .string()
     .min(5, {
-      message: "Name must be at least 5 characters.",
+      message: "Title must be at least 5 characters.",
     })
     .transform((val) => val.toLowerCase()),
 });
 
 export default function ReactHookForm() {
-  const { isPending, execute, data, error } =
-    useServerAction(produceNewMessage);
-  const { message, resetMessage, setMessage } = useStore();
+  const { isPending, execute, error } = useServerAction(slugGenerator);
+  const { resetSlug, setSlug, slug } = useSlugStore();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
+      title: "",
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const [, err] = await execute(values);
+    const [data, err] = await execute(values);
 
     if (err) {
       console.log(err);
       return;
     }
 
-    setMessage(data!);
+    setSlug(data.slug);
 
     form.reset();
   }
-
-  useEffect(() => {
-    console.log(message);
-  }, [message]);
 
   return (
     <div className="flex justify-center items-center mt-5">
       <Card className="not-prose w-96">
         <CardHeader>
-          <CardTitle>Form Example</CardTitle>
+          <CardTitle>Form</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <FormField
                 control={form.control}
-                name="name"
+                name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="shadcn" {...field} />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -84,14 +78,14 @@ export default function ReactHookForm() {
               </Button>
             </form>
           </Form>
-          {message && <div>Message: {message}</div>}
+          {slug && <div>Slug: {slug}</div>}
           {error && <div>Error: {JSON.stringify(error.fieldErrors)}</div>}
           <Button
             onClick={() => {
-              resetMessage();
+              resetSlug();
             }}
           >
-            Reset Message
+            Reset Slug
           </Button>
         </CardContent>
       </Card>
